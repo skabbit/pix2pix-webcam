@@ -14,16 +14,17 @@ import numpy as np
 import os
 import cv2
 import PIL.Image
+import random
 
 
-dim = 256  # target dimensions, 
-do_crop = False # if true, resizes shortest edge to target dimensions and crops other edge. If false, does non-uniform resize
+dim = 256  # target dimensions,
+do_crop = True  # if true, resizes shortest edge to target dimensions and crops other edge. If false, does non-uniform resize
 
-canny_thresh1 = 50
-canny_thresh2 = 500
+canny_thresh1 = 10
+canny_thresh2 = 100
 
-root_path = './'
-in_path = "/Users/skabbit/Projects/DVFU/Workshop #10 - Neural Networks #1/herbarium-clean-2/" # os.path.join(root_path, 'Горы/ПРИРОДА')
+root_path = './'  # os.path.join(root_path, 'Горы/ПРИРОДА')
+in_path = "/Users/skabbit/Projects/DVFU/Workshop #10 - Neural Networks #1/herbarium-clean-2/"
 out_path = os.path.join(root_path, 'herbarium')
 
 
@@ -37,9 +38,9 @@ out_shape = (dim, dim)
 if os.path.exists(out_path) == False:
     os.makedirs(out_path)
 
-# eCryptfs file system has filename length limit of around 143 chars! 
+# eCryptfs file system has filename length limit of around 143 chars!
 # https://unix.stackexchange.com/questions/32795/what-is-the-maximum-allowed-filename-and-folder-size-with-ecryptfs
-max_fname_len = 140 # leave room for extension
+max_fname_len = 140  # leave room for extension
 
 
 def get_file_list(path, extensions=['jpg', 'jpeg', 'png']):
@@ -54,16 +55,17 @@ def get_file_list(path, extensions=['jpg', 'jpeg', 'png']):
 paths = get_file_list(in_path)
 print('{} files found'.format(len(paths)))
 
+random.shuffle(paths)
 
 for i, path in enumerate(paths[:10]):
     path_d, path_f = os.path.split(path)
-    
+
     # combine path and filename to create unique new filename
     out_fname = path_d.split('/')[-1] + '_' + path_f
-                            
+
     # take last n characters so doesn't go over filename length limit
     out_fname = os.path.splitext(out_fname)[0][-max_fname_len+4:] + '.jpg'
-    
+
     print('File {} of {}, {}'.format(i, len(paths), out_fname))
     im = PIL.Image.open(path)
     im = im.convert('RGB')
@@ -78,16 +80,26 @@ for i, path in enumerate(paths[:10]):
         hh = int(im.height / 2)
         hd = int(dim/2)
         area = (hw-hd, hh-hd, hw+hd, hh+hd)
-        im = im.crop(area)            
-            
+        im = im.crop(area)
+
     else:
         im = im.resize(out_shape, PIL.Image.BICUBIC)
-        
-    a1 = np.array(im) 
-    a2 = cv2.Canny(a1, canny_thresh1, canny_thresh2)
-    a2 = cv2.cvtColor(a2, cv2.COLOR_GRAY2RGB)                 
-    a3 = np.concatenate((a1,a2), axis=1)
-    im = PIL.Image.fromarray(a3)                     
-                       
-    im.save(os.path.join(out_path, out_fname))
 
+    a1 = np.array(im)
+    a2 = a1.copy()
+    size = 19
+    # kernel = np.ones((size, size), np.float32) / (size*size)
+    # a2 = cv2.filter2D(a2, -1, kernel)
+    a2 = cv2.GaussianBlur(a2, (size,size), 0)
+    a2 = cv2.Canny(a2, canny_thresh1, canny_thresh2)
+    a2 = cv2.cvtColor(a2, cv2.COLOR_GRAY2RGB)
+    a3 = np.concatenate((a1, a2), axis=1)
+
+    # if a2 all black, then skip it
+    im = PIL.Image.fromarray(a3)
+    print(np.count_nonzero(a2))
+    if np.count_nonzero(a2) > 3000:
+        # im.save(os.path.join(out_path, out_fname))
+        im.show()
+    else:
+        print("skip black image")
