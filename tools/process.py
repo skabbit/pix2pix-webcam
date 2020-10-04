@@ -303,4 +303,5 @@ def main():
                 coord.request_stop()
                 coord.join(threads)
 
-main()
+if __name__ == '__main__':
+    main()  
