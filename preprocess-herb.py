@@ -17,8 +17,11 @@ import PIL.Image
 import random
 from tqdm import tqdm
 
+# from skimage.filters import threshold_yen
+# from skimage.exposure import rescale_intensity
 
-dim = 256  # target dimensions,
+
+dim = 512  # target dimensions,
 do_crop = True  # if true, resizes shortest edge to target dimensions and crops other edge. If false, does non-uniform resize
 
 canny_thresh1 = 10
@@ -56,9 +59,9 @@ def get_file_list(path, extensions=['jpg', 'jpeg', 'png']):
 paths = get_file_list(in_path)
 print('{} files found'.format(len(paths)))
 
-# random.shuffle(paths)
+random.shuffle(paths)
 
-for path in tqdm(paths[:2]):
+for path in tqdm(paths[:2000]):
     path_d, path_f = os.path.split(path)
 
     # combine path and filename to create unique new filename
@@ -88,16 +91,26 @@ for path in tqdm(paths[:2]):
 
     a1 = np.array(im)
     a2 = a1.copy()
+
     size = 19
-    # kernel = np.ones((size, size), np.float32) / (size*size)
-    # a2 = cv2.filter2D(a2, -1, kernel)
     a2 = cv2.GaussianBlur(a2, (size,size), 0)
     a2 = cv2.Canny(a2, canny_thresh1, canny_thresh2)
+
+    # a2 = cv2.cvtColor(a2, cv2.COLOR_RGB2GRAY)
+    # yen_threshold = threshold_yen(a2)
+    # a2 = rescale_intensity(a2, (0, yen_threshold), (0, 255))
+    # a2 = a2.astype(np.int)
+    # a2 = np.int8(a2)
+
+    # need to $ pip install opencv-contrib-python
+    # a2 = cv2.ximgproc.niBlackThreshold(a2, 255, cv2.THRESH_BINARY, at_bs, -0.3, binarizationMethod=cv2.ximgproc.BINARIZATION_NICK)
+
     a2 = cv2.cvtColor(a2, cv2.COLOR_GRAY2RGB)
-    a3 = np.concatenate((a1, a2), axis=1)
+    # print(a2.shape)
 
     # if a2 all black, then skip it
-    im = PIL.Image.fromarray(a3)
     if np.count_nonzero(a2) > 3000:
+        a3 = np.concatenate((a1, a2), axis=1)
+        im = PIL.Image.fromarray(a3)
         im.save(os.path.join(out_path, out_fname))
         # im.show()
