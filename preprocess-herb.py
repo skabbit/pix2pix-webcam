@@ -15,6 +15,7 @@ import os
 import cv2
 import PIL.Image
 import random
+from tqdm import tqdm
 
 
 dim = 256  # target dimensions,
@@ -55,9 +56,9 @@ def get_file_list(path, extensions=['jpg', 'jpeg', 'png']):
 paths = get_file_list(in_path)
 print('{} files found'.format(len(paths)))
 
-random.shuffle(paths)
+# random.shuffle(paths)
 
-for i, path in enumerate(paths[:10]):
+for path in tqdm(paths[:2]):
     path_d, path_f = os.path.split(path)
 
     # combine path and filename to create unique new filename
@@ -66,7 +67,7 @@ for i, path in enumerate(paths[:10]):
     # take last n characters so doesn't go over filename length limit
     out_fname = os.path.splitext(out_fname)[0][-max_fname_len+4:] + '.jpg'
 
-    print('File {} of {}, {}'.format(i, len(paths), out_fname))
+    # print('File {} of {}, {}'.format(i, len(paths), out_fname))
     im = PIL.Image.open(path)
     im = im.convert('RGB')
     if do_crop:
@@ -97,9 +98,6 @@ for i, path in enumerate(paths[:10]):
 
     # if a2 all black, then skip it
     im = PIL.Image.fromarray(a3)
-    print(np.count_nonzero(a2))
     if np.count_nonzero(a2) > 3000:
-        # im.save(os.path.join(out_path, out_fname))
-        im.show()
-    else:
-        print("skip black image")
+        im.save(os.path.join(out_path, out_fname))
+        # im.show()
