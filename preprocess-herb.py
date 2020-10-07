@@ -18,10 +18,9 @@ import random
 from tqdm import tqdm
 
 from skimage import filters
-from skimage.exposure import rescale_intensity
 
 
-dim = 512  # target dimensions,
+dim = 256  # target dimensions,
 do_crop = True  # if true, resizes shortest edge to target dimensions and crops other edge. If false, does non-uniform resize
 
 canny_thresh1 = 10
@@ -33,9 +32,9 @@ out_path = os.path.join(root_path, 'herbarium')
 
 
 #########################################
-out_path += '_' + str(dim) + '_100-200'
+out_path += '_' + str(dim)
 if do_crop:
-    out_path += '_crop'
+    out_path += '_256'
 
 out_shape = (dim, dim)
 
@@ -61,7 +60,7 @@ print('{} files found'.format(len(paths)))
 
 random.shuffle(paths)
 
-for path in paths[:10]:
+for path in tqdm(paths[:2]):
     path_d, path_f = os.path.split(path)
 
     # combine path and filename to create unique new filename
@@ -93,28 +92,17 @@ for path in paths[:10]:
     a2 = a1.copy()
     a2 = cv2.cvtColor(a2, cv2.COLOR_RGB2GRAY)
 
-    # a2 = cv2.Canny(a2, canny_thresh1, canny_thresh2)
-
     size = 11
     a2 = cv2.GaussianBlur(a2, (size,size), 0)
 
-
-    threshold = filters.threshold_isodata(a2) 
-    binary = a2 <= threshold
-    a2 = rescale_intensity(a2 * 255, (0, threshold), (0, 255))
-    a2 = a2.astype('uint8')
-
-    a3 = cv2.equalizeHist(a2)
-
-    a2 = cv2.cvtColor(a2, cv2.COLOR_GRAY2RGB)
+    a3 = cv2.Canny(a2, canny_thresh1, canny_thresh2)
     a3 = cv2.cvtColor(a3, cv2.COLOR_GRAY2RGB)
-    a5 = cv2.cvtColor(binary.astype('uint8') * 255, cv2.COLOR_GRAY2RGB)
 
-    # print(a2.shape)
+    threshold = filters.threshold_isodata(a2)
+    binary = a2 <= threshold
+    a2 = cv2.cvtColor(binary.astype('uint8') * 255, cv2.COLOR_GRAY2RGB)
 
-    # if a2 all black, then skip it
-    if np.count_nonzero(a2) > 3000:
-        a3 = np.concatenate((a1, a2, a3, a5), axis=1)
-        im = PIL.Image.fromarray(a3)
-        # im.save(os.path.join(out_path, out_fname))
-        im.show()
+    a3 = np.concatenate((a1, a3), axis=1)
+    im = PIL.Image.fromarray(a3)
+    # im.save(os.path.join(out_path, out_fname))
+    im.show()

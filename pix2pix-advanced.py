@@ -31,6 +31,8 @@ parser.add_argument("--save_freq", type=int, default=5000, help="save model ever
 parser.add_argument("--separable_conv", action="store_true", help="use separable convolutions in the generator")
 parser.add_argument("--aspect_ratio", type=float, default=1.0, help="aspect ratio of output images (width/height)")
 parser.add_argument("--lab_colorization", action="store_true", help="split input image into brightness (A) and color (B)")
+parser.add_argument("--no_input", action="store_true", help="only targets given, input generated on-fly (see Memo original article)")
+parser.set_defaults(no_input=True)
 parser.add_argument("--batch_size", type=int, default=1, help="number of images in batch")
 parser.add_argument("--which_direction", type=str, default="AtoB", choices=["AtoB", "BtoA"])
 parser.add_argument("--ngf", type=int, default=64, help="number of generator filters in first conv layer")
@@ -268,7 +270,9 @@ def load_examples():
 
         raw_input.set_shape([None, None, 3])
 
-        if a.lab_colorization:
+        if a.no_input:
+            a_images = preprocess(raw_input)
+        elif a.lab_colorization:
             # load color and brightness from image, no B image exists here
             lab = rgb_to_lab(raw_input)
             L_chan, a_chan, b_chan = preprocess_lab(lab)
@@ -280,7 +284,9 @@ def load_examples():
             a_images = preprocess(raw_input[:,:width//2,:])
             b_images = preprocess(raw_input[:,width//2:,:])
 
-    if a.which_direction == "AtoB":
+    if a.no_input:
+        inputs, targets = [a_images, a_images]
+    elif a.which_direction == "AtoB":
         inputs, targets = [a_images, b_images]
     elif a.which_direction == "BtoA":
         inputs, targets = [b_images, a_images]
