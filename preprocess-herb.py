@@ -20,8 +20,9 @@ from tqdm import tqdm
 from skimage import filters
 
 
-dim = 256  # target dimensions,
+dim = 512  # target dimensions,
 do_crop = True  # if true, resizes shortest edge to target dimensions and crops other edge. If false, does non-uniform resize
+target_only = True
 
 canny_thresh1 = 10
 canny_thresh2 = 100
@@ -34,7 +35,7 @@ out_path = os.path.join(root_path, 'herbarium')
 #########################################
 out_path += '_' + str(dim)
 if do_crop:
-    out_path += '_256'
+    out_path += '_target'
 
 out_shape = (dim, dim)
 
@@ -60,7 +61,7 @@ print('{} files found'.format(len(paths)))
 
 random.shuffle(paths)
 
-for path in tqdm(paths[:2]):
+for path in tqdm(paths):
     path_d, path_f = os.path.split(path)
 
     # combine path and filename to create unique new filename
@@ -72,6 +73,7 @@ for path in tqdm(paths[:2]):
     # print('File {} of {}, {}'.format(i, len(paths), out_fname))
     im = PIL.Image.open(path)
     im = im.convert('RGB')
+
     if do_crop:
         resize_shape = list(out_shape)
         if im.width < im.height:
@@ -88,21 +90,26 @@ for path in tqdm(paths[:2]):
     else:
         im = im.resize(out_shape, PIL.Image.BICUBIC)
 
-    a1 = np.array(im)
-    a2 = a1.copy()
-    a2 = cv2.cvtColor(a2, cv2.COLOR_RGB2GRAY)
+    if target_only:
+        a1 = np.array(im)
+        im = PIL.Image.fromarray(a1)
+    else:
+        a1 = np.array(im)
+        a2 = a1.copy()
+        a2 = cv2.cvtColor(a2, cv2.COLOR_RGB2GRAY)
 
-    size = 11
-    a2 = cv2.GaussianBlur(a2, (size,size), 0)
+        size = 11
+        a2 = cv2.GaussianBlur(a2, (size,size), 0)
 
-    a3 = cv2.Canny(a2, canny_thresh1, canny_thresh2)
-    a3 = cv2.cvtColor(a3, cv2.COLOR_GRAY2RGB)
+        a3 = cv2.Canny(a2, canny_thresh1, canny_thresh2)
+        a3 = cv2.cvtColor(a3, cv2.COLOR_GRAY2RGB)
 
-    threshold = filters.threshold_isodata(a2)
-    binary = a2 <= threshold
-    a2 = cv2.cvtColor(binary.astype('uint8') * 255, cv2.COLOR_GRAY2RGB)
+        threshold = filters.threshold_isodata(a2)
+        binary = a2 <= threshold
+        a2 = cv2.cvtColor(binary.astype('uint8') * 255, cv2.COLOR_GRAY2RGB)
 
-    a3 = np.concatenate((a1, a3), axis=1)
-    im = PIL.Image.fromarray(a3)
-    # im.save(os.path.join(out_path, out_fname))
-    im.show()
+        a3 = np.concatenate((a1, a3), axis=1)
+        im = PIL.Image.fromarray(a3)
+    
+    im.save(os.path.join(out_path, out_fname))
+    # im.show()
