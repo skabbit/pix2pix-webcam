@@ -53,7 +53,7 @@ a = parser.parse_args()
 EPS = 1e-12
 CROP_SIZE = 256
 MAX_SIZE = 320
-DOWNSCALE_SIZE = 12
+DOWNSCALE_SIZE = 10
 
 Examples = collections.namedtuple("Examples", "paths, inputs, targets, count, steps_per_epoch")
 Model = collections.namedtuple("Model", "outputs, predict_real, predict_fake, discrim_loss, discrim_grads_and_vars, gen_loss_GAN, gen_loss_L1, gen_grads_and_vars, train")
@@ -302,13 +302,14 @@ def load_examples():
         if a.flip:
             r = tf.image.random_flip_left_right(r, seed=seed)
 
-        # scale target image to a random size between 100% and 130% of the desired image size
-        scale_size = tf.cast(tf.floor(tf.random_uniform([1], CROP_SIZE, MAX_SIZE, seed=seed)), dtype=tf.int32)[0]
-        r = tf.image.resize_images(r, [scale_size, scale_size], method=tf.image.ResizeMethod.AREA)
+        # # scale target image to a random size between 100% and 130% of the desired image size
+        # scale_size = tf.cast(tf.floor(tf.random_uniform([1], CROP_SIZE, MAX_SIZE, seed=seed)), dtype=tf.int32)[0]
+        # r = tf.image.resize_images(r, [scale_size, scale_size], method=tf.image.ResizeMethod.AREA)
 
         # take random crop of the desired size
-        offset = tf.cast(tf.floor(tf.random_uniform([2], 0, tf.cast(scale_size - CROP_SIZE + 1, dtype=tf.float32), seed=seed)), dtype=tf.int32)
-        r = tf.image.crop_to_bounding_box(r, offset[0], offset[1], CROP_SIZE, CROP_SIZE)
+        r = tf.image.random_crop(r, [256, 256, 3], seed=seed)
+        # offset = tf.cast(tf.floor(tf.random_uniform([2], 0, tf.cast(scale_size - CROP_SIZE + 1, dtype=tf.float32), seed=seed)), dtype=tf.int32)
+        # r = tf.image.crop_to_bounding_box(r, offset[0], offset[1], CROP_SIZE, CROP_SIZE)
         
         # process only inputs
         if process:
